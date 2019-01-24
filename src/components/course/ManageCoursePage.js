@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import * as courseActions from '../../actions/courseActions';
 import CourseForm from './CourseForm';
+import toastr from 'toastr';
 
 export class ManageCoursePage extends Component {
 
@@ -11,7 +12,8 @@ export class ManageCoursePage extends Component {
         super(props, context);
         this.state = {
             course: Object.assign({}, props.course),
-            errors: {}
+            errors: {},
+            saving: false
         };
 
         this.updateCourseState = this.updateCourseState.bind(this);
@@ -20,7 +22,7 @@ export class ManageCoursePage extends Component {
 
     componentWillReceiveProps(nextProps) {
         if (this.props.course.id != nextProps.course.id) {
-            this.setState({course: Object.assign({}, nextProps.course)});
+            this.setState({ course: Object.assign({}, nextProps.course) });
         }
     }
 
@@ -28,13 +30,26 @@ export class ManageCoursePage extends Component {
         const field = event.target.name;
         let course = this.state.course;
         course[field] = event.target.value;
-        return this.setState({course: course});
+        return this.setState({ course: course });
     }
 
     saveCourse(event) {
         event.preventDefault();
-        this.props.actions.saveCourse(this.state.course);
+        this.setState({saving: true});
+        this.props.actions.saveCourse(this.state.course)
+            .then(() => this.redirect())
+            .catch((error) => this.onFailure(error));
+    }
+
+    redirect() {
+        this.setState({saving: false});
+        toastr.success('Course saved');
         this.context.router.push('/courses');
+    }
+
+    onFailure(error) {
+        this.setState({saving: false});
+        toastr.error(error);
     }
 
     render() {
@@ -44,7 +59,8 @@ export class ManageCoursePage extends Component {
                 onChange={this.updateCourseState}
                 onSave={this.saveCourse}
                 course={this.state.course}
-                errors={this.state.errors} 
+                errors={this.state.errors}
+                saving={this.state.saving}
             />
         );
     }
